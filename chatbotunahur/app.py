@@ -60,18 +60,24 @@ def find_faq_response(df, intent, params):
     filtered_df = df[df['intencion'] == intent]
 
     for entity_name, entity_value in params.items():
-        # Si la entidad viene como lista, usar el primer valor
         if isinstance(entity_value, list) and entity_value:
             entity_value = entity_value[0]
 
-        # Filtrar solo si la columna existe y el valor no es nulo
-        if entity_name in filtered_df.columns and pd.notna(entity_value):
-            filtered_df = filtered_df.dropna(subset=[entity_name])
-            filtered_df = filtered_df[filtered_df[entity_name] == entity_value]
+        # Solo filtrar si la columna existe y el valor no es nulo o vacío
+        if entity_name in filtered_df.columns and entity_value is not None and entity_value != '':
+            # Filtrar filas que tienen el valor en la columna, o que tengan NaN (para no perder filas sin valor)
+            filtered_df = filtered_df[
+                (filtered_df[entity_name] == entity_value)
+            ]
+            # No hagas dropna porque elimina filas válidas
+            # Esto filtra solo las filas que tengan ese valor exacto en la columna
+            # Si querés, podrías hacer algo más flexible para filtrar también si la columna está vacía.
 
     if not filtered_df.empty:
         return filtered_df.iloc[0]['respuesta']
+
     return None
+
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
