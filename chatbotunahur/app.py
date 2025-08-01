@@ -31,45 +31,26 @@ def load_faqs_from_sheet():
         print(f"ERROR al cargar Google Sheets: {e}")
         return pd.DataFrame()
 
-# Carga inicial de FAQs
 faqs_df = load_faqs_from_sheet()
 
-def extract_entities(req):
-    entities = {}
-
-    # Extraer parámetros directos de queryResult.parameters
-    params = req.get('queryResult', {}).get('parameters', {})
-    if params:
-        entities.update(params)
-
-    # Extraer parámetros de contextos si no están ya en entities o están vacíos
-    contexts = req.get('queryResult', {}).get('outputContexts', [])
-    for ctx in contexts:
-        ctx_params = ctx.get('parameters', {})
-        for k, v in ctx_params.items():
-            if k not in entities or entities[k] in [None, '', [], {}]:
-                entities[k] = v
-
-    return entities
-
-def find_faq_response(df, intent, params):
+def find_faq_response(df, intent, params, use_entities=True):
     if df.empty:
         return None
 
     filtered_df = df[df['intencion'] == intent]
 
-    for entity_name, entity_value in params.items():
-        if isinstance(entity_value, list) and entity_value:
-            entity_value = entity_value[0]
+    if use_entities and params:
+        for entity_name, entity_value in params.items():
+            # Tomar solo el primer valor si es lista
+            if isinstance(entity_value, list) and entity_value:
+                entity_value = entity_value[0]
 
-        if entity_name in filtered_df.columns and pd.notna(entity_value):
-            filtered_df = filtered_df[
-                filtered_df[entity_name].notna() & (filtered_df[entity_name] == entity_value)
-            ]
+            if entity_name in filtered_df.columns and pd.notna(entity_value):
+                filtered_df = filtered_df.dropna(subset=[entity_name])
+                filtered_df = filtered_df[filtered_df[entity_name] == entity_value]
 
     if not filtered_df.empty:
         return filtered_df.iloc[0]['respuesta']
-
     return None
 
 @app.route('/webhook', methods=['POST'])
@@ -82,12 +63,26 @@ def webhook():
         if not intent:
             raise ValueError("No se encontró la intención en la solicitud.")
 
-        entities = extract_entities(req)
+        contexts = req.get('queryResult', {}).get('outputContexts', [])
+        hay_contexto = len(contexts) > 0
+
+        if hay_contexto:
+            # Extraer parámetros de todos los contextos que tengan parámetros y unirlos
+            entidades_contexto = {}
+            for ctx in contexts:
+                params = ctx.get('parameters', {})
+                if params:
+                    entidades_contexto.update(params)
+            entities = entidades_contexto
+        else:
+            # Extraer parámetros directamente de la consulta
+            entities = req.get('queryResult', {}).get('parameters', {}).copy()
 
         print(f"Intent detectado: {intent}")
+        print(f"Contexto activo: {hay_contexto}")
         print(f"Entidades procesadas: {entities}")
 
-        respuesta = find_faq_response(faqs_df, intent, entities)
+        respuesta = find_faq_response(faqs_df, intent, entities, use_entities=True)
 
         if not respuesta:
             respuesta = "Lo siento, no encontré una respuesta para esa consulta específica."
@@ -104,4 +99,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
-
