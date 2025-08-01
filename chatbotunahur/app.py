@@ -31,18 +31,25 @@ def load_faqs_from_sheet():
         print(f"ERROR al cargar Google Sheets: {e}")
         return pd.DataFrame()
 
+# Carga inicial de FAQs
 faqs_df = load_faqs_from_sheet()
 
 def extract_entities(req):
-    entities = req.get('queryResult', {}).get('parameters', {}).copy()
+    entities = {}
 
-    # Agregar desde contextos si no están en parameters
+    # Extraer parámetros directos de queryResult.parameters
+    params = req.get('queryResult', {}).get('parameters', {})
+    if params:
+        entities.update(params)
+
+    # Extraer parámetros de contextos si no están ya en entities o están vacíos
     contexts = req.get('queryResult', {}).get('outputContexts', [])
     for ctx in contexts:
         ctx_params = ctx.get('parameters', {})
-        for key, val in ctx_params.items():
-            if key not in entities or not entities[key]:
-                entities[key] = val
+        for k, v in ctx_params.items():
+            if k not in entities or entities[k] in [None, '', [], {}]:
+                entities[k] = v
+
     return entities
 
 def find_faq_response(df, intent, params):
@@ -56,11 +63,13 @@ def find_faq_response(df, intent, params):
             entity_value = entity_value[0]
 
         if entity_name in filtered_df.columns and pd.notna(entity_value):
-            filtered_df = filtered_df.dropna(subset=[entity_name])
-            filtered_df = filtered_df[filtered_df[entity_name] == entity_value]
+            filtered_df = filtered_df[
+                filtered_df[entity_name].notna() & (filtered_df[entity_name] == entity_value)
+            ]
 
     if not filtered_df.empty:
         return filtered_df.iloc[0]['respuesta']
+
     return None
 
 @app.route('/webhook', methods=['POST'])
@@ -95,3 +104,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
+
