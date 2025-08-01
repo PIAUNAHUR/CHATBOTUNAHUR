@@ -33,6 +33,18 @@ def load_faqs_from_sheet():
 
 faqs_df = load_faqs_from_sheet()
 
+def extract_entities(req):
+    entities = req.get('queryResult', {}).get('parameters', {}).copy()
+
+    # Agregar desde contextos si no están en parameters
+    contexts = req.get('queryResult', {}).get('outputContexts', [])
+    for ctx in contexts:
+        ctx_params = ctx.get('parameters', {})
+        for key, val in ctx_params.items():
+            if key not in entities or not entities[key]:
+                entities[key] = val
+    return entities
+
 def find_faq_response(df, intent, params):
     if df.empty:
         return None
@@ -40,11 +52,10 @@ def find_faq_response(df, intent, params):
     filtered_df = df[df['intencion'] == intent]
 
     for entity_name, entity_value in params.items():
-        if entity_name in filtered_df.columns and entity_value:
-            # Si es lista, usá el primer valor
-            if isinstance(entity_value, list):
-                entity_value = entity_value[0]
+        if isinstance(entity_value, list) and entity_value:
+            entity_value = entity_value[0]
 
+        if entity_name in filtered_df.columns and pd.notna(entity_value):
             filtered_df = filtered_df.dropna(subset=[entity_name])
             filtered_df = filtered_df[filtered_df[entity_name] == entity_value]
 
@@ -56,16 +67,16 @@ def find_faq_response(df, intent, params):
 def webhook():
     try:
         req = request.get_json(force=True)
-        print(f"REQ JSON: {json.dumps(req, indent=2)}")  # Diagnóstico útil
+        print(f"REQ JSON: {json.dumps(req, indent=2)}")
 
         intent = req.get('queryResult', {}).get('intent', {}).get('displayName')
-        entities = req.get('queryResult', {}).get('parameters', {})
-
         if not intent:
             raise ValueError("No se encontró la intención en la solicitud.")
 
+        entities = extract_entities(req)
+
         print(f"Intent detectado: {intent}")
-        print(f"Entidades recibidas: {entities}")
+        print(f"Entidades procesadas: {entities}")
 
         respuesta = find_faq_response(faqs_df, intent, entities)
 
