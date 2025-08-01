@@ -22,7 +22,7 @@ def load_faqs_from_sheet():
         credentials = ServiceAccountCredentials.from_json_keyfile_dict(cred_dict, scope)
         client = gspread.authorize(credentials)
 
-        spreadsheet = client.open("FAQs_intent_entidades2")
+        spreadsheet = client.open("FAQs_intent_entidades")
         sheet = spreadsheet.sheet1
         records = sheet.get_all_records()
         df = pd.DataFrame(records)
