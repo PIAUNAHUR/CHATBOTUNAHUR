@@ -33,21 +33,41 @@ def load_faqs_from_sheet():
 
 faqs_df = load_faqs_from_sheet()
 
-def find_faq_response(df, intent, params, use_entities=True):
+def extract_entities(req):
+    # Extraer entidades de parámetros directos
+    entities = req.get('queryResult', {}).get('parameters', {}).copy()
+
+    # Remover entidades automáticas que no queremos usar
+    for bad_entity in ['no-input', 'no-match']:
+        if bad_entity in entities:
+            del entities[bad_entity]
+
+    # Extraer entidades desde contextos (si existen), para complementar
+    contexts = req.get('queryResult', {}).get('outputContexts', [])
+    for ctx in contexts:
+        ctx_params = ctx.get('parameters', {})
+        for key, val in ctx_params.items():
+            # Agregar solo si no existe o está vacío
+            if key not in entities or not entities[key]:
+                entities[key] = val
+
+    return entities
+
+def find_faq_response(df, intent, params):
     if df.empty:
         return None
 
     filtered_df = df[df['intencion'] == intent]
 
-    if use_entities and params:
-        for entity_name, entity_value in params.items():
-            # Tomar solo el primer valor si es lista
-            if isinstance(entity_value, list) and entity_value:
-                entity_value = entity_value[0]
+    for entity_name, entity_value in params.items():
+        # Si la entidad viene como lista, usar el primer valor
+        if isinstance(entity_value, list) and entity_value:
+            entity_value = entity_value[0]
 
-            if entity_name in filtered_df.columns and pd.notna(entity_value):
-                filtered_df = filtered_df.dropna(subset=[entity_name])
-                filtered_df = filtered_df[filtered_df[entity_name] == entity_value]
+        # Filtrar solo si la columna existe y el valor no es nulo
+        if entity_name in filtered_df.columns and pd.notna(entity_value):
+            filtered_df = filtered_df.dropna(subset=[entity_name])
+            filtered_df = filtered_df[filtered_df[entity_name] == entity_value]
 
     if not filtered_df.empty:
         return filtered_df.iloc[0]['respuesta']
@@ -57,32 +77,18 @@ def find_faq_response(df, intent, params, use_entities=True):
 def webhook():
     try:
         req = request.get_json(force=True)
-        print(f"REQ JSON: {json.dumps(req, indent=2)}")
+        print(f"REQ JSON: {json.dumps(req, indent=2, ensure_ascii=False)}")
 
         intent = req.get('queryResult', {}).get('intent', {}).get('displayName')
         if not intent:
             raise ValueError("No se encontró la intención en la solicitud.")
 
-        contexts = req.get('queryResult', {}).get('outputContexts', [])
-        hay_contexto = len(contexts) > 0
-
-        if hay_contexto:
-            # Extraer parámetros de todos los contextos que tengan parámetros y unirlos
-            entidades_contexto = {}
-            for ctx in contexts:
-                params = ctx.get('parameters', {})
-                if params:
-                    entidades_contexto.update(params)
-            entities = entidades_contexto
-        else:
-            # Extraer parámetros directamente de la consulta
-            entities = req.get('queryResult', {}).get('parameters', {}).copy()
+        entities = extract_entities(req)
 
         print(f"Intent detectado: {intent}")
-        print(f"Contexto activo: {hay_contexto}")
         print(f"Entidades procesadas: {entities}")
 
-        respuesta = find_faq_response(faqs_df, intent, entities, use_entities=True)
+        respuesta = find_faq_response(faqs_df, intent, entities)
 
         if not respuesta:
             respuesta = "Lo siento, no encontré una respuesta para esa consulta específica."
