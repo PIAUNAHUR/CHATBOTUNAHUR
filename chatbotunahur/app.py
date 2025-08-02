@@ -53,7 +53,8 @@ def find_faq_response(df, intent, params):
     if df.empty:
         return None
 
-    filtered_df = df[df['intencion'] == intent]
+    filtered_df = df[df['intencion'] == intent].copy()
+
     print(f"🔍 Intent inicial: {intent}")
     print(f"🔍 Pregunta con entidades: {params}")
 
@@ -61,30 +62,31 @@ def find_faq_response(df, intent, params):
         if entity_name in IGNORE_ENTITIES:
             continue
 
-        if isinstance(entity_value, list) and entity_value:
-            entity_value = entity_value[0]
+        # ⚠️ Nos aseguramos de tomar un solo valor, en string
+        if isinstance(entity_value, list):
+            entity_value = entity_value[0] if entity_value else None
 
-        if (
-            entity_name in filtered_df.columns
-            and pd.notna(entity_value)
-        ):
-            # ⚠️ Solo mantener filas donde la entidad no esté vacía
-            mask = filtered_df[entity_name].notna()
+        if not entity_value:
+            continue  # saltar si está vacío
 
-            # ⚠️ Filtrar solo si el valor coincide (con .lower().strip())
-            mask &= (
-                filtered_df[entity_name].astype(str).str.lower().str.strip()
-                == str(entity_value).lower().strip()
+        entity_value_str = str(entity_value).lower().strip()
+
+        if entity_name in filtered_df.columns:
+            mask = (
+                filtered_df[entity_name].notna() &
+                (filtered_df[entity_name].astype(str).str.lower().str.strip() == entity_value_str)
             )
             filtered_df = filtered_df[mask]
 
     print("📋 Valores en la base para este intent:")
     print(filtered_df.head(3).to_dict(orient="records"))
     print(f"🔎 Coincidencias encontradas: {len(filtered_df)}")
-    
+
     if not filtered_df.empty:
         return filtered_df.iloc[0]['respuesta']
+
     return None
+
 
 
 @app.route('/webhook', methods=['POST'])
