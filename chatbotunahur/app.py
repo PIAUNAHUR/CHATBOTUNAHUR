@@ -57,6 +57,8 @@ def find_faq_response(df, intent, params):
         return None
 
     filtered_df = df[df['intencion'] == intent]
+    print(f"🔍 Intent inicial: {intent}")
+    print(f"🔍 Pregunta con entidades: {params}")
 
     for entity_name, entity_value in params.items():
         if entity_name in IGNORE_ENTITIES:
@@ -72,7 +74,7 @@ def find_faq_response(df, intent, params):
             
     print("Intent:", intent)
     print("Parámetros recibidos:", params)
-
+    print(f"🔎 Coincidencias encontradas: {len(filtered_df)}"
     if not filtered_df.empty:
         return filtered_df.iloc[0]['respuesta']
     return None
