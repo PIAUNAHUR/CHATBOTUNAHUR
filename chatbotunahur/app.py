@@ -36,34 +36,25 @@ def load_faqs_from_sheet():
 faqs_df = load_faqs_from_sheet()
 
 def extract_entities(req):
-    entities = {}
-    # Obtener parámetros principales
-    parameters = req.get('queryResult', {}).get('parameters', {}).copy()
+    """
+    Extrae solo las entidades de la consulta actual, ignorando
+    los contextos para evitar contaminación entre intents.
+    """
+    # Inicia con los parámetros de la consulta actual
+    params = req.get('queryResult', {}).get('parameters', {}).copy()
     
-    # Procesar contextos
-    contexts = req.get('queryResult', {}).get('outputContexts', [])
-    for ctx in contexts:
-        ctx_params = ctx.get('parameters', {})
-        for key, val in ctx_params.items():
-            # Ignorar sufijos .original
-            if '.original' in key:
-                continue
-            # Tomar solo el primer valor si es lista
+    entities = {}
+    for key, val in params.items():
+        # Nos aseguramos de que la entidad no esté en la lista de ignorados y tenga un valor
+        if key not in IGNORE_ENTITIES and val:
+            # Si el valor es una lista (como lo envía Dialogflow), tomamos el primer elemento
             if isinstance(val, list) and val:
                 entities[key] = val[0]
-            else:
+            # Si no es una lista pero tiene valor, lo tomamos
+            elif not isinstance(val, list):
                 entities[key] = val
-    
-    # Combinar con parámetros principales
-    for key, val in parameters.items():
-        if '.original' in key:
-            continue
-        if isinstance(val, list) and val:
-            entities[key] = val[0]
-        else:
-            entities[key] = val
-    
-    return {k: v for k, v in entities.items() if k not in IGNORE_ENTITIES}
+                
+    return entities
 
 def find_faq_response(df, intent, params):
     if df.empty:
