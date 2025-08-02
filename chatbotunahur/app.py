@@ -68,6 +68,9 @@ def find_faq_response(df, intent, params):
         if entity_name in filtered_df.columns and pd.notna(entity_value):
             filtered_df = filtered_df.dropna(subset=[entity_name])
             filtered_df = filtered_df[filtered_df[entity_name] == entity_value]
+            
+    print("Intent:", intent)
+    print("Parámetros recibidos:", params)
 
     if not filtered_df.empty:
         return filtered_df.iloc[0]['respuesta']
