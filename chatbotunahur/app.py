@@ -43,13 +43,10 @@ def extract_entities(req):
     for ctx in contexts:
         ctx_params = ctx.get('parameters', {})
         for key, val in ctx_params.items():
-            # Solo agregar si no está y no es uno de los ignorados
             if key not in entities or not entities[key]:
                 entities[key] = val
 
-    # Filtrar las entidades automáticas que no sirven para la lógica
     entities = {k: v for k, v in entities.items() if k not in IGNORE_ENTITIES}
-
     return entities
 
 def find_faq_response(df, intent, params):
@@ -60,6 +57,10 @@ def find_faq_response(df, intent, params):
     print(f"🔍 Intent inicial: {intent}")
     print(f"🔍 Pregunta con entidades: {params}")
 
+    # Debug opcional: mostrar valores disponibles
+    print("📋 Valores en la base para este intent:")
+    print(filtered_df.head(3).to_dict(orient="records"))
+
     for entity_name, entity_value in params.items():
         if entity_name in IGNORE_ENTITIES:
             continue
@@ -69,12 +70,15 @@ def find_faq_response(df, intent, params):
 
         if entity_name in filtered_df.columns and pd.notna(entity_value):
             filtered_df = filtered_df.dropna(subset=[entity_name])
-            filtered_df = filtered_df[filtered_df[entity_name].str.lower() == str(entity_value).lower()]
+            filtered_df = filtered_df[
+                filtered_df[entity_name].astype(str).str.lower().str.strip()
+                == str(entity_value).lower().strip()
+            ]
 
-            
     print("Intent:", intent)
     print("Parámetros recibidos:", params)
-    print(f"🔎 Coincidencias encontradas: {len(filtered_df)}"
+    print(f"🔎 Coincidencias encontradas: {len(filtered_df)}")
+
     if not filtered_df.empty:
         return filtered_df.iloc[0]['respuesta']
     return None
