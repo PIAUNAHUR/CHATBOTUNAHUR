@@ -36,51 +36,67 @@ def load_faqs_from_sheet():
 faqs_df = load_faqs_from_sheet()
 
 def extract_entities(req):
-    entities = req.get('queryResult', {}).get('parameters', {}).copy()
-
-    # Agregar desde contextos si no están en parameters
+    entities = {}
+    # Obtener parámetros principales
+    parameters = req.get('queryResult', {}).get('parameters', {}).copy()
+    
+    # Procesar contextos
     contexts = req.get('queryResult', {}).get('outputContexts', [])
     for ctx in contexts:
         ctx_params = ctx.get('parameters', {})
         for key, val in ctx_params.items():
-            if key not in entities or not entities[key]:
+            # Ignorar sufijos .original
+            if '.original' in key:
+                continue
+            # Tomar solo el primer valor si es lista
+            if isinstance(val, list) and val:
+                entities[key] = val[0]
+            else:
                 entities[key] = val
-
-    entities = {k: v for k, v in entities.items() if k not in IGNORE_ENTITIES}
-    return entities
+    
+    # Combinar con parámetros principales
+    for key, val in parameters.items():
+        if '.original' in key:
+            continue
+        if isinstance(val, list) and val:
+            entities[key] = val[0]
+        else:
+            entities[key] = val
+    
+    return {k: v for k, v in entities.items() if k not in IGNORE_ENTITIES}
 
 def find_faq_response(df, intent, params):
     if df.empty:
         return None
 
-    filtered_df = df[df['intencion'] == intent].copy()
-
     print(f"🔍 Intent inicial: {intent}")
     print(f"🔍 Pregunta con entidades: {params}")
 
+    filtered_df = df[df['intencion'] == intent].copy()
+    
     for entity_name, entity_value in params.items():
-        if entity_name in IGNORE_ENTITIES:
+        if entity_name not in filtered_df.columns:
             continue
-
-        # ⚠️ Nos aseguramos de tomar un solo valor, en string
+        
+        # Normalizar valor de entidad
         if isinstance(entity_value, list):
             entity_value = entity_value[0] if entity_value else None
-
-        if not entity_value:
-            continue  # saltar si está vacío
-
         entity_value_str = str(entity_value).lower().strip()
-
-        if entity_name in filtered_df.columns:
-            mask = (
-                filtered_df[entity_name].notna() &
-                (filtered_df[entity_name].astype(str).str.lower().str.strip() == entity_value_str)
-            )
-            filtered_df = filtered_df[mask]
-
+        
+        # Manejar múltiples valores en celda (ej: "virtual;presencial")
+        mask = filtered_df[entity_name].apply(
+            lambda x: any(
+                val.strip().lower() == entity_value_str 
+                for val in str(x).split(';')
+            ) if pd.notna(x) else False
+        )
+        filtered_df = filtered_df[mask]
+    
     print("📋 Valores en la base para este intent:")
     print(filtered_df.head(3).to_dict(orient="records"))
     print(f"🔎 Coincidencias encontradas: {len(filtered_df)}")
+    print(f"DataFrame filtrado por intent '{intent}': {len(filtered_df)} filas")
+    print("Columnas disponibles:", filtered_df.columns.tolist())
 
     if not filtered_df.empty:
         return filtered_df.iloc[0]['respuesta']
