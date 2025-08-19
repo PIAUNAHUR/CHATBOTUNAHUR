@@ -141,9 +141,8 @@ def webhook():
             # Retorna un objeto con 'fulfillmentMessages' para párrafos separados.
             response_payload = {'fulfillmentMessages': mensajes_listos}
 
-        # Último paso de depuración: imprime el JSON final antes de enviarlo.
+        # Este único return maneja ambos casos.
         print(f"FINAL PAYLOAD: {json.dumps(response_payload, indent=2, ensure_ascii=False)}")
-        
         return jsonify(response_payload), 200
 
     except Exception as e:
