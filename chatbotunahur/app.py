@@ -124,13 +124,43 @@ def webhook():
             final_response = np.random.choice(fallback_responses)
             # Retorna como texto plano, que es lo que espera Dialogflow para fallbacks.
             response_payload = {'fulfillmentText': final_response}
+        def webhook():
+    try:
+        req = request.get_json(force=True)
+        print(f"REQ JSON: {json.dumps(req, indent=2, ensure_ascii=False)}")
+
+        intent = req.get('queryResult', {}).get('intent', {}).get('displayName')
+        if not intent:
+            raise ValueError("No se encontró la intención en la solicitud.")
+
+        entities = extract_entities(req)
+        respuesta_db = find_faq_response(faqs_df, intent, entities)
+
+        if not respuesta_db:
+            fallback_responses = [
+                "Lo siento, no encontré una respuesta para esa consulta específica.",
+                "Disculpame, puedes especificar el tema de tu consulta."
+            ]
+            final_response = np.random.choice(fallback_responses)
+            response_payload = {'fulfillmentText': final_response}
         else:
-            # Reemplaza el delimitador '---' por saltos de línea dobles
-            # Esto creará párrafos dentro de un solo string.
-            processed_response = respuesta_db.replace('---', '<br>')
-        
-            # Retorna un solo objeto con 'fulfillmentText'
-            response_payload = {'fulfillmentText': processed_response}
+            # Dividimos la respuesta en párrafos por el delimitador '---'
+            parrafos = [p.strip() for p in respuesta_db.split('---') if p.strip()]
+
+            # Armamos un payload richContent con cada párrafo como ítem
+            rich_response = {
+                "fulfillmentMessages": [
+                    {
+                        "payload": {
+                            "richContent": [[
+                                {"type": "description", "text": parrafos}
+                            ]]
+                        }
+                    }
+                ]
+            }
+
+            response_payload = rich_response
             
         return jsonify(response_payload), 200
 
