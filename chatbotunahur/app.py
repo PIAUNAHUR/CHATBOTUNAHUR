@@ -91,7 +91,7 @@ def find_faq_response(df, intent, params):
 
     if not filtered_df.empty:
         respuesta_filtrada = filtered_df.iloc[0]['respuesta']
-        print(f'Respuesta cruda: {repr(respuesta_filtrada)})
+        print(f"Raw response from DataFrame: {repr(respuesta_filtrada)}")
         respuesta_con_salto = respuesta_filtrada.replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\n\n')
         return respuesta_con_salto
         
