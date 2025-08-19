@@ -127,7 +127,7 @@ def webhook():
         else:
             # Reemplaza el delimitador '---' por saltos de línea dobles
             # Esto creará párrafos dentro de un solo string.
-            processed_response = respuesta_db.replace('---', '\n\n')
+            processed_response = respuesta_db.replace('---', '<br>')
         
             # Retorna un solo objeto con 'fulfillmentText'
             response_payload = {'fulfillmentText': processed_response}
