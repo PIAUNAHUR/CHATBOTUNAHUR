@@ -4,6 +4,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import os
 import json
 import pandas as pd
+import numpy as np
 
 app = Flask(__name__)
 
@@ -91,8 +92,9 @@ def find_faq_response(df, intent, params):
 
     if not filtered_df.empty:
         respuesta_filtrada = filtered_df.iloc[0]['respuesta']
-        print(f"Raw response from DataFrame: {repr(respuesta_filtrada)}")
-        respuesta_con_salto = respuesta_filtrada.replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\n\n')
+        respuesta_normalizada = re.sub(r'\s*[\r\n]+\s*', '\n', respuesta_filtrada)
+        respuesta_procesada = respuesta_normalizada.replace('\n', '\n\n')
+        respuesta_final = respuesta_procesada.strip()
         return respuesta_con_salto
         
     return None
@@ -117,9 +119,11 @@ def webhook():
         respuesta = find_faq_response(faqs_df, intent, entities)
 
         if not respuesta:
-            respuesta = "Lo siento, no encontré una respuesta para esa consulta específica."
-
-        return jsonify({'fulfillmentText': respuesta})
+            respuesta = ["Lo siento, no encontré una respuesta para esa consulta específica.","Disculpame, puedes especificar el tema de tu consulta", "Disculpa, no he logrado entendente",
+                        "Disculpe, no he encontrado una respuesta a esa consulta"]
+            indice = np.random.randint(0,len(respuesta-1)
+                                       
+        return jsonify({'fulfillmentText': respuesta[indice]})
 
     except Exception as e:
         print(f"ERROR en webhook: {e}")
