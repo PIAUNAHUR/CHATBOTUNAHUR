@@ -120,11 +120,8 @@ def webhook():
         respuesta = find_faq_response(faqs_df, intent, entities)
 
         if not respuesta:
-            respuesta = ["Lo siento, no encontré una respuesta para esa consulta específica.","Disculpame, puedes especificar el tema de tu consulta", "Disculpa, no he logrado entendente",
-                        "Disculpe, no he encontrado una respuesta a esa consulta"]
-            indice = np.random.randint(0,len(respuesta)-1)
-                                       
-        return jsonify({'fulfillmentText': respuesta[indice]})
+            respuesta = "Lo siento, no encontré una respuesta para esa consulta específica."
+        return jsonify({'fulfillmentText': respuesta})
 
     except Exception as e:
         print(f"ERROR en webhook: {e}")
