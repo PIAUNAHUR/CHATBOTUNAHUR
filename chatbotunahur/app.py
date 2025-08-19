@@ -130,7 +130,6 @@ def webhook():
             mensajes_listos = []
             
             for parrafo in parrafos:
-                # Nos aseguramos de que el párrafo no esté vacío.
                 if parrafo:
                     mensajes_listos.append({
                         "text": {
@@ -138,12 +137,12 @@ def webhook():
                         }
                     })
             
-            # Retorna un objeto con 'fulfillmentMessages' para párrafos separados.
             response_payload = {'fulfillmentMessages': mensajes_listos}
 
-        # Este único return maneja ambos casos.
+        # Este es el único return de la función, manejando ambos casos.
         print(f"FINAL PAYLOAD: {json.dumps(response_payload, indent=2, ensure_ascii=False)}")
         return jsonify(response_payload), 200
+
 
     except Exception as e:
         print(f"ERROR en webhook: {e}")
