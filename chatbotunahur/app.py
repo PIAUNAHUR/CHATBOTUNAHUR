@@ -137,18 +137,13 @@ def webhook():
             # Dividimos por '---' para obtener párrafos
             parrafos = [p.strip() for p in respuesta_db.split('---') if p.strip()]
 
-            # Versión plana con saltos de línea
+            # Texto plano con saltos de línea (para consola/Dialogflow básico)
             plain_text = "\n\n".join(parrafos)
 
-            # Payload combinado: texto plano + richContent
+            # ⚡ Devolver solo UN fulfillmentMessages con richContent
             response_payload = {
                 "fulfillmentText": plain_text,
                 "fulfillmentMessages": [
-                    {
-                        "text": {
-                            "text": [plain_text]
-                        }
-                    },
                     {
                         "payload": {
                             "richContent": [[
