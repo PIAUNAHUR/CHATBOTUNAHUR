@@ -125,22 +125,13 @@ def webhook():
             # Retorna como texto plano, que es lo que espera Dialogflow para fallbacks.
             response_payload = {'fulfillmentText': final_response}
         else:
-            # Si hay una respuesta, la dividimos en párrafos y creamos mensajes separados.
-            parrafos = [p.strip() for p in respuesta_db.split('---')]
-            mensajes_listos = []
+            # Reemplaza el delimitador '---' por saltos de línea dobles
+            # Esto creará párrafos dentro de un solo string.
+            processed_response = respuesta_db.replace('---', '\n\n')
+        
+            # Retorna un solo objeto con 'fulfillmentText'
+            response_payload = {'fulfillmentText': processed_response}
             
-            for parrafo in parrafos:
-                if parrafo:
-                    mensajes_listos.append({
-                        "text": {
-                            "text": [parrafo]
-                        }
-                    })
-            
-            response_payload = {'fulfillmentMessages': mensajes_listos}
-
-        # Este es el único return de la función, manejando ambos casos.
-        print(f"FINAL PAYLOAD: {json.dumps(response_payload, indent=2, ensure_ascii=False)}")
         return jsonify(response_payload), 200
 
 
