@@ -113,34 +113,42 @@ def webhook():
             raise ValueError("No se encontró la intención en la solicitud.")
 
         entities = extract_entities(req)
+        respuesta_db = find_faq_response(faqs_df, intent, entities)
 
-        print(f"Intent detectado: {intent}")
-        print(f"Entidades procesadas: {entities}")
-
-        respuesta = find_faq_response(faqs_df, intent, entities)
-
-        if not respuesta:
-            fallback_responses = ["Lo siento, no encontré una respuesta.","Disculpa, puedes ser más específico."] #Podemos agregar varias respuestas aca
+        if not respuesta_db:
+            # Si no hay respuesta, devolvemos un mensaje simple.
+            fallback_responses = [
+                "Lo siento, no encontré una respuesta para esa consulta específica.",
+                "Disculpame, puedes especificar el tema de tu consulta."
+            ]
             final_response = np.random.choice(fallback_responses)
-            return jsonify({'fulfillmentText': final_response}) # Devuelve como texto plano
-
+            # Retorna como texto plano, que es lo que espera Dialogflow para fallbacks.
+            response_payload = {'fulfillmentText': final_response}
         else:
-            # Normaliza el texto y lo divide por un delimitador de párrafo (por ejemplo, '---')
-            parrafos = [p.strip() for p in respuesta.split('---')]
-            # 2. Construye una lista de objetos de mensaje
+            # Si hay una respuesta, la dividimos en párrafos y creamos mensajes separados.
+            parrafos = [p.strip() for p in respuesta_db.split('---')]
             mensajes_listos = []
+            
             for parrafo in parrafos:
-                if parrafo: # Evita enviar párrafos vacíos
+                # Nos aseguramos de que el párrafo no esté vacío.
+                if parrafo:
                     mensajes_listos.append({
                         "text": {
                             "text": [parrafo]
                         }
                     })
-            return jsonify({'fulfillmentMessages': mensajes_listos})
+            
+            # Retorna un objeto con 'fulfillmentMessages' para párrafos separados.
+            response_payload = {'fulfillmentMessages': mensajes_listos}
+
+        # Último paso de depuración: imprime el JSON final antes de enviarlo.
+        print(f"FINAL PAYLOAD: {json.dumps(response_payload, indent=2, ensure_ascii=False)}")
+        
+        return jsonify(response_payload), 200
 
     except Exception as e:
         print(f"ERROR en webhook: {e}")
-        return jsonify({'fulfillmentText': 'Ocurrió un error procesando tu solicitud. Por favor, intenta de nuevo.'}), 200
+        return jsonify({'fulfillmentText': 'Ocurrió un error inesperado. Por favor, intenta de nuevo.'}), 200
 
 if __name__ == '__main__':
     if faqs_df.empty:
