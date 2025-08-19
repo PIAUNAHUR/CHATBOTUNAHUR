@@ -90,8 +90,11 @@ def find_faq_response(df, intent, params):
     print("Columnas disponibles:", filtered_df.columns.tolist())
 
     if not filtered_df.empty:
-        return filtered_df.iloc[0]['respuesta']
-
+        respuesta_filtrada = filtered_df.iloc[0]['respuesta']
+        print(f'Respuesta cruda: {repr(respuesta_filtrada)})
+        respuesta_con_salto = respuesta_filtrada.replace('\r\n', '\n').replace('\r', '\n').replace('\n', '\n\n')
+        return respuesta_con_salto
+        
     return None
 
 
