@@ -116,27 +116,6 @@ def webhook():
         respuesta_db = find_faq_response(faqs_df, intent, entities)
 
         if not respuesta_db:
-            # Si no hay respuesta, devolvemos un mensaje simple.
-            fallback_responses = [
-                "Lo siento, no encontré una respuesta para esa consulta específica.",
-                "Disculpame, puedes especificar el tema de tu consulta."
-            ]
-            final_response = np.random.choice(fallback_responses)
-            # Retorna como texto plano, que es lo que espera Dialogflow para fallbacks.
-            response_payload = {'fulfillmentText': final_response}
-        def webhook():
-    try:
-        req = request.get_json(force=True)
-        print(f"REQ JSON: {json.dumps(req, indent=2, ensure_ascii=False)}")
-
-        intent = req.get('queryResult', {}).get('intent', {}).get('displayName')
-        if not intent:
-            raise ValueError("No se encontró la intención en la solicitud.")
-
-        entities = extract_entities(req)
-        respuesta_db = find_faq_response(faqs_df, intent, entities)
-
-        if not respuesta_db:
             fallback_responses = [
                 "Lo siento, no encontré una respuesta para esa consulta específica.",
                 "Disculpame, puedes especificar el tema de tu consulta."
