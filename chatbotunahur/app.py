@@ -119,12 +119,12 @@ def webhook():
 
         respuesta = find_faq_response(faqs_df, intent, entities)
 
-         if not respuesta:
+        if not respuesta:
             fallback_responses = ["Lo siento, no encontré una respuesta.","Disculpa, puedes ser más específico."] #Podemos agregar varias respuestas aca
             final_response = np.random.choice(fallback_responses)
             return jsonify({'fulfillmentText': final_response}) # Devuelve como texto plano
 
-         else:
+        else:
             # Normaliza el texto y lo divide por un delimitador de párrafo (por ejemplo, '---')
             parrafos = [p.strip() for p in respuesta.split('---')]
             # 2. Construye una lista de objetos de mensaje
