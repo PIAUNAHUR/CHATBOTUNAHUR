@@ -121,32 +121,54 @@ def webhook():
                 "Disculpame, puedes especificar el tema de tu consulta."
             ]
             final_response = np.random.choice(fallback_responses)
-            response_payload = {'fulfillmentText': final_response}
+
+            response_payload = {
+                "fulfillmentText": final_response,
+                "fulfillmentMessages": [
+                    {
+                        "text": {
+                            "text": [final_response]
+                        }
+                    }
+                ]
+            }
+
         else:
-            # Dividimos la respuesta en párrafos por el delimitador '---'
+            # Dividimos por '---' para obtener párrafos
             parrafos = [p.strip() for p in respuesta_db.split('---') if p.strip()]
 
-            # Armamos un payload richContent con cada párrafo como ítem
-            rich_response = {
+            # Versión plana con saltos de línea
+            plain_text = "\n\n".join(parrafos)
+
+            # Payload combinado: texto plano + richContent
+            response_payload = {
+                "fulfillmentText": plain_text,
                 "fulfillmentMessages": [
+                    {
+                        "text": {
+                            "text": [plain_text]
+                        }
+                    },
                     {
                         "payload": {
                             "richContent": [[
-                                {"type": "description", "text": parrafos}
+                                {
+                                    "type": "description",
+                                    "text": parrafos
+                                }
                             ]]
                         }
                     }
                 ]
             }
 
-            response_payload = rich_response
-            
         return jsonify(response_payload), 200
-
 
     except Exception as e:
         print(f"ERROR en webhook: {e}")
-        return jsonify({'fulfillmentText': 'Ocurrió un error inesperado. Por favor, intenta de nuevo.'}), 200
+        return jsonify({
+            "fulfillmentText": "Ocurrió un error inesperado. Por favor, intenta de nuevo."
+        }), 200
 
 if __name__ == '__main__':
     if faqs_df.empty:
