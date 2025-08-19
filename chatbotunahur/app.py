@@ -96,7 +96,7 @@ def find_faq_response(df, intent, params):
         respuesta_normalizada = re.sub(r'\s*[\r\n]+\s*', '\n', respuesta_filtrada)
         respuesta_procesada = respuesta_normalizada.replace('\n', '\n\n')
         respuesta_final = respuesta_procesada.strip()
-        return respuesta_con_salto
+        return respuesta_final
         
     return None
 
