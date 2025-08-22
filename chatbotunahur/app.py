@@ -92,11 +92,15 @@ def find_faq_response(df, intent, params):
     print("Columnas disponibles:", filtered_df.columns.tolist())
 
     if not filtered_df.empty:
-        respuesta_filtrada = filtered_df.iloc[0]['respuesta']
-        respuesta_normalizada = re.sub(r'\s*[\r\n]+\s*', '\n', respuesta_filtrada)
-        respuesta_procesada = respuesta_normalizada.replace('\n', '\n\n')
-        respuesta_final = respuesta_procesada.strip()
-        return respuesta_final
+        fila = filtered_df.iloc[0]
+        posibles_respuestas = [fila['respuesta'], fila['respuesta2']]
+        posibles_respuestas = [r for r in posibles_respuestas if pd.notna(r) and r]
+        if posibles_respuestas:
+            respuesta_filtrada = np.random.choice(posibles_respuestas)
+            respuesta_normalizada = re.sub(r'\s*[\r\n]+\s*', '\n', respuesta_filtrada)
+            respuesta_procesada = respuesta_normalizada.replace('\n', '\n\n')
+            respuesta_final = respuesta_procesada.strip()
+            return respuesta_final
         
     return None
 
@@ -134,13 +138,13 @@ def webhook():
             }
 
         else:
-            # Dividimos por '---' para obtener párrafos
+     
             parrafos = [p.strip() for p in respuesta_db.split('---') if p.strip()]
 
-            # Texto plano con saltos de línea (para consola/Dialogflow básico)
+           
             plain_text = "\n\n".join(parrafos)
 
-            # ⚡ Devolver solo UN fulfillmentMessages con richContent
+            
             response_payload = {
                 "fulfillmentText": plain_text,
                 "fulfillmentMessages": [
